@@ -1,0 +1,9 @@
+setuptools
+wheel
+pgen
+cython
+torch
+numpy
+matplotlib
+pytest
+git+https://github.com/lanpa/tensorboardX.git

@@ -1,2 +1,0 @@
-TAG=meshcnn:dev
-NVIDIA_PYTORCH_TAG=23.03-py3
