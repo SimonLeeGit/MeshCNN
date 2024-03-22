@@ -1,26 +1,36 @@
 import numpy as np
 import os
 import ntpath
+import json
 
 
 def fill_mesh(mesh2fill, file: str, opt):
     load_path = get_mesh_path(file, opt.num_aug)
-    if os.path.exists(load_path):
+    load_path_json = load_path + ".json"
+    mesh_data_json = {}
+    if os.path.exists(load_path) and os.path.exists(load_path_json):
         mesh_data = np.load(load_path, encoding='latin1', allow_pickle=True)
+        with open(load_path_json, "r") as f:
+            mesh_data_json = json.load(f)
     else:
         mesh_data = from_scratch(file, opt)
-        np.savez_compressed(load_path, gemm_edges=mesh_data.gemm_edges, vs=mesh_data.vs, edges=mesh_data.edges,
-                            edges_count=mesh_data.edges_count, ve=mesh_data.ve, v_mask=mesh_data.v_mask,
-                            filename=mesh_data.filename, sides=mesh_data.sides,
+        np.savez_compressed(load_path, gemm_edges=mesh_data.gemm_edges, vs=mesh_data.vs,
+                            edges=mesh_data.edges, v_mask=mesh_data.v_mask, sides=mesh_data.sides,
                             edge_lengths=mesh_data.edge_lengths, edge_areas=mesh_data.edge_areas,
                             features=mesh_data.features)
+        mesh_data_json["filename"] = mesh_data.filename
+        mesh_data_json['edges_count'] = mesh_data.edges_count
+        mesh_data_json['ve'] = mesh_data.ve
+        with open(load_path_json, "w") as f:
+            json.dump(mesh_data_json, f)
+
     mesh2fill.vs = mesh_data['vs']
     mesh2fill.edges = mesh_data['edges']
     mesh2fill.gemm_edges = mesh_data['gemm_edges']
-    mesh2fill.edges_count = int(mesh_data['edges_count'])
-    mesh2fill.ve = mesh_data['ve']
+    mesh2fill.edges_count = int(mesh_data_json['edges_count'])
+    mesh2fill.ve = mesh_data_json['ve']
     mesh2fill.v_mask = mesh_data['v_mask']
-    mesh2fill.filename = str(mesh_data['filename'])
+    mesh2fill.filename = str(mesh_data_json['filename'])
     mesh2fill.edge_lengths = mesh_data['edge_lengths']
     mesh2fill.edge_areas = mesh_data['edge_areas']
     mesh2fill.features = mesh_data['features']
@@ -88,7 +98,6 @@ def fill_from_file(mesh, file):
 
 
 def remove_non_manifolds(mesh, faces):
-    mesh.ve = [[] for _ in mesh.vs]
     edges_set = set()
     mask = np.ones(len(faces), dtype=bool)
     _, face_areas = compute_face_normals_and_areas(mesh, faces)
